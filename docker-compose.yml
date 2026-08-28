@@ -1,0 +1,85 @@
+services:
+  # -------------------------------------------------------------
+  # 1. HDFS CLUSTER: Apache Hadoop NameNode
+  # -------------------------------------------------------------
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: datastore_namenode
+    restart: always
+    ports:
+      - "9870:9870" # HDFS NameNode Web UI
+      - "9000:9000" # HDFS Default RPC
+    environment:
+      - CLUSTER_NAME=datastore-cluster
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      - .:/data
+    networks:
+      - datastore_net
+
+  # -------------------------------------------------------------
+  # 1. HDFS CLUSTER: Apache Hadoop DataNode
+  # -------------------------------------------------------------
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datastore_datanode
+    restart: always
+    ports:
+      - "9864:9864" # HDFS DataNode Web UI
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    depends_on:
+      - namenode
+    networks:
+      - datastore_net
+
+  # -------------------------------------------------------------
+  # 2. NoSQL DATABASE: MongoDB
+  # -------------------------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: datastore_mongodb
+    restart: always
+    ports:
+      - "27017:27017" # Mongo Port
+    environment:
+      - MONGO_INITDB_DATABASE=datastore_db
+    volumes:
+      - mongodb_data:/data/db
+      - .:/data
+    networks:
+      - datastore_net
+
+  # -------------------------------------------------------------
+  # 2. NoSQL GUI: Mongo Express
+  # -------------------------------------------------------------
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: datastore_mongo_express
+    restart: always
+    ports:
+      - "8081:8081" # Web GUI Port
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      - mongodb
+    networks:
+      - datastore_net
+
+networks:
+  datastore_net:
+    driver: bridge
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  mongodb_data:
