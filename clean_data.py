@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-DATASTORE S.A.C. - Pipeline de Limpieza y Validación de Datos
-Autor: Ingeniero de Datos Senior & Especialista Big Data / NoSQL
-"""
-
 import sys
 import json
 import os

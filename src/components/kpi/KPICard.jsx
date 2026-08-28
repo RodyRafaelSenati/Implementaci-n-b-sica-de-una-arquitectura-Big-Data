@@ -48,39 +48,42 @@ export const KPICard = ({
   return (
     <div 
       onClick={onClick}
-      className={`glass-panel relative overflow-hidden rounded-2xl p-5 border border-slate-700/50 dark:border-slate-800/80 bg-slate-900/80 dark:bg-slate-900/60 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 ${scheme.borderGlow} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`glass-panel relative overflow-hidden rounded-2xl p-4 sm:p-5 border border-slate-700/50 dark:border-slate-800/80 bg-slate-900/80 dark:bg-slate-900/60 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex flex-col justify-between ${scheme.borderGlow} ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* Sutil gradiente de fondo */}
       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${scheme.gradient} rounded-full blur-2xl pointer-events-none -mr-8 -mt-8`} />
 
       <div className="relative z-10">
         {/* Cabecera de la tarjeta */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">
             {title}
           </span>
           {Icon && (
-            <div className={`p-2.5 rounded-xl border ${scheme.bgIcon}`}>
-              <Icon className="w-4 h-4" />
+            <div className={`p-2 rounded-xl border shrink-0 ml-2 ${scheme.bgIcon}`}>
+              <Icon className="w-3.5 h-3.5" />
             </div>
           )}
         </div>
 
-        {/* Valor Principal */}
+        {/* Valor Principal Adaptable */}
         <div className="mb-2">
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight tabular-nums">
+          <h3 
+            className="text-lg sm:text-xl xl:text-xl 2xl:text-2xl font-extrabold text-white tracking-tight tabular-nums truncate" 
+            title={typeof value === 'string' ? value : undefined}
+          >
             {value}
           </h3>
         </div>
 
         {/* Footer / Subtítulo y Badge */}
-        <div className="flex items-center justify-between text-xs pt-1">
-          <p className="text-slate-400 font-medium truncate max-w-[65%]">
+        <div className="flex items-center justify-between gap-1 text-[11px] pt-1">
+          <p className="text-slate-400 font-medium truncate flex-1" title={subtitle}>
             {subtitle}
           </p>
 
           {badge && (
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ${
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${
               badgeType === 'positive'
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                 : badgeType === 'highlight'
