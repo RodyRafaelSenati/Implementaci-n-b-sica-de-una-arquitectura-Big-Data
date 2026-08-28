@@ -8,6 +8,7 @@ import { ChartsGrid } from './components/charts/ChartsGrid';
 import { BusinessInsights } from './components/insights/BusinessInsights';
 import { ExecutiveReport } from './components/report/ExecutiveReport';
 import { DataTableModal } from './components/report/DataTableModal';
+import { AdHocQueryBuilder } from './components/adhoc/AdHocQueryBuilder';
 import { 
   Sparkles, 
   BarChart3, 
@@ -17,7 +18,8 @@ import {
   AlertCircle,
   Database,
   RefreshCw,
-  Server
+  Server,
+  Sliders
 } from 'lucide-react';
 
 const DashboardContent = () => {
@@ -47,7 +49,7 @@ const DashboardContent = () => {
           <div className="mb-6 p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 text-indigo-200 text-xs flex items-center justify-between animate-pulse">
             <div className="flex items-center space-x-3">
               <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
-              <span className="font-semibold">Sincronizando con el cluster de almacenamiento HDFS y MongoDB NoSQL...</span>
+              <span className="font-semibold">Sincronizando con el clúster de almacenamiento HDFS y MongoDB NoSQL...</span>
             </div>
             <span className="font-mono text-[11px] text-indigo-400">DATASTORE S.A.C. Big Data Lake</span>
           </div>
@@ -101,15 +103,24 @@ const DashboardContent = () => {
 
             {/* Vista según la pestaña activa */}
             {activeTab === 'dashboard' && (
-              <div className="space-y-8 animate-fade-in">
-                {/* Grid de 8 Gráficos Estadísticos */}
+              <div className="space-y-10 animate-fade-in">
+                {/* 1. Módulo de Consultas Libres & Ad-Hoc Analytics */}
+                <AdHocQueryBuilder />
+
+                {/* 2. Grid de 8 Gráficos Estadísticos */}
                 <ChartsGrid />
 
-                {/* Módulo de Insights Estratégicos */}
+                {/* 3. Módulo de Insights Estratégicos */}
                 <BusinessInsights />
 
-                {/* Reporte Ejecutivo Resumen */}
+                {/* 4. Reporte Ejecutivo Resumen */}
                 <ExecutiveReport />
+              </div>
+            )}
+
+            {activeTab === 'adhoc' && (
+              <div className="animate-fade-in">
+                <AdHocQueryBuilder />
               </div>
             )}
 

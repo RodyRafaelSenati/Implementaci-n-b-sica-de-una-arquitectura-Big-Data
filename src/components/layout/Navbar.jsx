@@ -10,9 +10,7 @@ import {
   FileSpreadsheet, 
   Printer, 
   Database,
-  CheckCircle2,
-  Server,
-  HardDrive
+  Sliders
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { formatNumber } from '../../utils/formatters';
@@ -22,10 +20,8 @@ export const Navbar = ({ onOpenDataTable }) => {
     theme, 
     toggleTheme, 
     filteredDataset, 
-    rawDataset,
     activeTab, 
     setActiveTab,
-    dataSourceInfo
   } = useData();
 
   const handlePrint = () => {
@@ -54,16 +50,16 @@ export const Navbar = ({ onOpenDataTable }) => {
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                Dashboard Empresarial de Inteligencia de Negocios & Big Data Lake
+                Dashboard Empresarial de Inteligencia de Negocios & Consultas Libres
               </p>
             </div>
           </div>
 
           {/* Navegación por Tabs */}
-          <nav className="hidden lg:flex items-center p-1 bg-slate-900/60 dark:bg-slate-900/90 rounded-xl border border-slate-800/80 text-xs font-medium text-slate-300">
+          <nav className="hidden xl:flex items-center p-1 bg-slate-900/60 dark:bg-slate-900/90 rounded-xl border border-slate-800/80 text-xs font-medium text-slate-300">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition-all duration-150 ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-150 ${
                 activeTab === 'dashboard'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
                   : 'hover:text-white hover:bg-slate-800/50'
@@ -74,20 +70,32 @@ export const Navbar = ({ onOpenDataTable }) => {
             </button>
 
             <button
+              onClick={() => setActiveTab('adhoc')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-150 ${
+                activeTab === 'adhoc'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-semibold'
+                  : 'hover:text-white hover:bg-slate-800/50 text-cyan-400'
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Consultas Libres Ad-Hoc</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('charts')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition-all duration-150 ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-150 ${
                 activeTab === 'charts'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
                   : 'hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
-              <span>Análisis Gráfico</span>
+              <span>8 Gráficos BI</span>
             </button>
 
             <button
               onClick={() => setActiveTab('insights')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition-all duration-150 ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-150 ${
                 activeTab === 'insights'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
                   : 'hover:text-white hover:bg-slate-800/50'
@@ -99,7 +107,7 @@ export const Navbar = ({ onOpenDataTable }) => {
 
             <button
               onClick={() => setActiveTab('report')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg transition-all duration-150 ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-150 ${
                 activeTab === 'report'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
                   : 'hover:text-white hover:bg-slate-800/50'
@@ -110,14 +118,14 @@ export const Navbar = ({ onOpenDataTable }) => {
             </button>
           </nav>
 
-          {/* Acciones de la Derecha (Sin botones de carga manual de CSV) */}
+          {/* Acciones de la Derecha */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             
             {/* Status Badge de HDFS & MongoDB */}
             <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 text-xs shadow-inner">
               <div className="flex items-center space-x-1.5 text-cyan-400 font-semibold">
                 <Database className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Cluster MongoDB:</span>
+                <span className="hidden md:inline">MongoDB:</span>
               </div>
               <span className="font-mono text-emerald-400 font-bold">
                 {formatNumber(filteredDataset.length)} docs
@@ -132,7 +140,7 @@ export const Navbar = ({ onOpenDataTable }) => {
               className="p-2 sm:px-3 sm:py-2 text-xs font-semibold rounded-xl text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/70 transition-all flex items-center space-x-1.5 shadow-sm"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span className="hidden md:inline">Tabla de Datos</span>
+              <span className="hidden md:inline">Tabla</span>
             </button>
 
             {/* Imprimir / PDF */}
@@ -160,7 +168,7 @@ export const Navbar = ({ onOpenDataTable }) => {
         </div>
 
         {/* Barra de pestañas móvil */}
-        <div className="flex lg:hidden overflow-x-auto py-2 border-t border-slate-800/60 space-x-2 text-xs">
+        <div className="flex xl:hidden overflow-x-auto py-2 border-t border-slate-800/60 space-x-2 text-xs">
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`px-3 py-1.5 rounded-lg whitespace-nowrap ${
@@ -168,6 +176,14 @@ export const Navbar = ({ onOpenDataTable }) => {
             }`}
           >
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('adhoc')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap ${
+              activeTab === 'adhoc' ? 'bg-cyan-600 text-white font-semibold' : 'text-cyan-400 bg-slate-800/50'
+            }`}
+          >
+            Consultas Libres
           </button>
           <button
             onClick={() => setActiveTab('charts')}
