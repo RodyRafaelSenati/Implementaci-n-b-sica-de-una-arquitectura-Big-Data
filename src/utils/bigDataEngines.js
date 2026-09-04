@@ -8,6 +8,7 @@
 
 // Función auxiliar para buscar valor en objeto insensible a mayúsculas/acentos
 const getFieldValue = (obj, possibleKeys) => {
+  if (!obj || typeof obj !== 'object') return '';
   const objKeys = Object.keys(obj);
   for (const pKey of possibleKeys) {
     const pNorm = pKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -21,7 +22,7 @@ const getFieldValue = (obj, possibleKeys) => {
   return '';
 };
 
-// Limpieza y Validación de Datos Flexible
+// Limpieza y Validación de Datos Flexible para cualquier CSV subido
 export const cleanAndValidateDataset = (rawRows) => {
   if (!rawRows || !Array.isArray(rawRows)) {
     return { initialCount: 0, removedCount: 0, cleanCount: 0, cleanRows: [] };
@@ -39,13 +40,12 @@ export const cleanAndValidateDataset = (rawRows) => {
       continue;
     }
     
-    // Validar campos con sinónimos e insensibilidad a mayúsculas/acentos
-    const fecha = getFieldValue(row, ['Fecha', 'fecha', 'Date', 'date', 'FECHA']);
-    const producto = getFieldValue(row, ['Producto', 'producto', 'Product', 'product', 'Item', 'PRODUCTO', 'Descripcion', 'Description']);
-    const categoria = getFieldValue(row, ['Categoría', 'Categoria', 'categoria', 'Category', 'category', 'CATEGORIA', 'Linea', 'Type']) || 'General';
-    const cantidadStr = getFieldValue(row, ['Cantidad', 'cantidad', 'Quantity', 'quantity', 'Qty', 'qty', 'Unidades', 'Units', 'CANTIDAD']);
-    const precioStr = getFieldValue(row, ['Precio', 'precio', 'Price', 'price', 'Unit_Price', 'Precio_Unitario', 'PRECIO']);
-    const ciudad = getFieldValue(row, ['Ciudad', 'ciudad', 'City', 'city', 'Sede', 'sede', 'Location', 'CIUDAD']) || 'Lima';
+    const fecha = getFieldValue(row, ['Fecha', 'fecha', 'Date', 'date', 'FECHA', 'Timestamp', 'time']);
+    const producto = getFieldValue(row, ['Producto', 'producto', 'Product', 'product', 'Item', 'item', 'PRODUCTO', 'Descripcion', 'Description', 'Name', 'Nombre']);
+    const categoria = getFieldValue(row, ['Categoría', 'Categoria', 'categoria', 'Category', 'category', 'CATEGORIA', 'Linea', 'Type', 'Tipo']) || 'General';
+    const cantidadStr = getFieldValue(row, ['Cantidad', 'cantidad', 'Quantity', 'quantity', 'Qty', 'qty', 'Unidades', 'Units', 'CANTIDAD', 'Count']);
+    const precioStr = getFieldValue(row, ['Precio', 'precio', 'Price', 'price', 'Unit_Price', 'Precio_Unitario', 'PRECIO', 'Valor', 'Rate']);
+    const ciudad = getFieldValue(row, ['Ciudad', 'ciudad', 'City', 'city', 'Sede', 'sede', 'Location', 'CIUDAD', 'Region', 'Sucursal']) || 'Lima';
 
     if (!producto) {
       removedCount++;
@@ -53,8 +53,8 @@ export const cleanAndValidateDataset = (rawRows) => {
     }
 
     // Normalizar Cantidad y Precio
-    let cantidad = parseInt(cantidadStr.replace(/[^0-9]/g, ''), 10);
-    let cleanPrecioStr = precioStr.replace(/[^0-9.,]/g, '').replace(',', '.');
+    let cantidad = parseInt(String(cantidadStr).replace(/[^0-9]/g, ''), 10);
+    let cleanPrecioStr = String(precioStr).replace(/[^0-9.,]/g, '').replace(',', '.');
     let precio = parseFloat(cleanPrecioStr);
 
     if (isNaN(cantidad) || cantidad <= 0) cantidad = 1;
@@ -94,12 +94,19 @@ export const cleanAndValidateDataset = (rawRows) => {
     cleanRows.push({
       id: cleanRows.length + 1,
       Fecha: isoDate,
+      fecha: isoDate,
       Producto: producto,
+      producto: producto,
       Categoría: categoria,
+      categoria: categoria,
       Cantidad: cantidad,
+      cantidad: cantidad,
       Precio: precio,
+      precio: precio,
       Ciudad: ciudad,
-      Total_Venta: totalVenta
+      ciudad: ciudad,
+      Total_Venta: totalVenta,
+      totalVenta: totalVenta
     });
   }
 
@@ -108,6 +115,19 @@ export const cleanAndValidateDataset = (rawRows) => {
     removedCount,
     cleanCount: cleanRows.length,
     cleanRows
+  };
+};
+
+// Helper seguro para extraer Producto, Cantidad y Total_Venta de cualquier fila
+const extractRowMetrics = (row) => {
+  const prod = row.Producto || row.producto || row.Product || row.product || row.Item || row.item || row.Nombre || row.nombre || 'Item General';
+  const cant = Number(row.Cantidad ?? row.cantidad ?? row.Quantity ?? row.quantity ?? row.Qty ?? row.qty ?? 1);
+  const prec = Number(row.Precio ?? row.precio ?? row.Price ?? row.price ?? 0);
+  const venta = Number(row.Total_Venta ?? row.total_venta ?? row.totalVenta ?? (cant * prec));
+  return {
+    producto: prod.trim(),
+    cantidad: isNaN(cant) ? 1 : cant,
+    totalVenta: isNaN(venta) ? (cant * prec) : venta
   };
 };
 
@@ -124,12 +144,12 @@ export const runHadoopMapReduce = (dataset) => {
   const mapSamples = [];
 
   for (let i = 0; i < safeData.length; i++) {
-    const row = safeData[i];
+    const { producto, cantidad, totalVenta } = extractRowMetrics(safeData[i]);
     const mapTuple = {
-      key: row.Producto,
+      key: producto,
       value: {
-        ventas: row.Total_Venta || (row.Cantidad * row.Precio) || 0,
-        unidades: row.Cantidad || 1
+        ventas: totalVenta,
+        unidades: cantidad
       }
     };
     mapOutput.push(mapTuple);
@@ -187,21 +207,22 @@ export const runHadoopMapReduce = (dataset) => {
     hdfsLines.push(`${r.producto}\t${r.totalUnidades}\t${r.totalVentas.toFixed(2)}`);
   });
 
-  const durationMs = Math.round(performance.now() - startTime + 18420);
+  // Latencia proporcional al volumen de datos
+  const baseLatency = (safeData.length * 0.92) + 200;
+  const durationMs = Math.round(baseLatency);
 
   const logs = [
-    `[INFO] org.apache.hadoop.mapreduce.JobSubmitter: Submitting tokens for job: job_1725450123456_0001`,
+    `[INFO] org.apache.hadoop.mapreduce.JobSubmitter: Submitting tokens for job: job_${Date.now()}_0001`,
     `[INFO] org.apache.hadoop.mapreduce.JobSubmitter: Cleaning staging directory hdfs://datastore_namenode:9000/tmp/hadoop-yarn/staging`,
-    `[INFO] org.apache.hadoop.yarn.client.api.impl.YarnClientImpl: Submitted application application_1725450123456_0001`,
-    `[INFO] org.apache.hadoop.mapreduce.Job: The url to track the job: http://datastore_namenode:8088/proxy/application_1725450123456_0001/`,
-    `[INFO] org.apache.hadoop.mapreduce.Job: Running job: job_1725450123456_0001`,
+    `[INFO] org.apache.hadoop.yarn.client.api.impl.YarnClientImpl: Submitted application application_${Date.now()}_0001`,
+    `[INFO] org.apache.hadoop.mapreduce.Job: Running job on dataset with ${safeData.length} input records`,
     `[INFO] org.apache.hadoop.mapreduce.Job:  map 0% reduce 0%`,
-    `[INFO] org.apache.hadoop.mapred.Task:  Task 'attempt_1725450123456_0001_m_000000_0' done. Mapped ${safeData.length} records.`,
+    `[INFO] org.apache.hadoop.mapred.Task:  Task map done. Mapped ${safeData.length} records into ${productList.length} unique keys.`,
     `[INFO] org.apache.hadoop.mapreduce.Job:  map 100% reduce 0%`,
     `[INFO] org.apache.hadoop.mapred.Task:  Shuffle & Sort completed. Spill to disk committed: ${(safeData.length * 0.00008).toFixed(2)} MB`,
-    `[INFO] org.apache.hadoop.mapred.Task:  Task 'attempt_1725450123456_0001_r_000000_0' done. Reduced ${productList.length} keys.`,
+    `[INFO] org.apache.hadoop.mapred.Task:  Task reduce done. Aggregated ${productList.length} products.`,
     `[INFO] org.apache.hadoop.mapreduce.Job:  map 100% reduce 100%`,
-    `[INFO] org.apache.hadoop.mapreduce.Job: Job job_1725450123456_0001 completed successfully`,
+    `[INFO] org.apache.hadoop.mapreduce.Job: Job completed successfully in ${(durationMs/1000).toFixed(2)} s`,
     `[INFO] org.apache.hadoop.mapreduce.Job: Output written to hdfs://datastore_namenode:9000/datastore/output/part-r-00000`
   ];
 
@@ -210,7 +231,7 @@ export const runHadoopMapReduce = (dataset) => {
     executionTimeMs: durationMs,
     latencyFormatted: `${(durationMs / 1000).toFixed(2)} s`,
     memoryUsedMB: 1024,
-    diskSpillMB: parseFloat((safeData.length * 0.00008).toFixed(2)) || 1.48,
+    diskSpillMB: parseFloat((safeData.length * 0.00008).toFixed(2)) || 0.1,
     mapSamples,
     shuffleSamples,
     reduceOutput,
@@ -229,48 +250,49 @@ export const runApacheSpark = (dataset) => {
 
   const aggregation = {};
   safeData.forEach(row => {
-    const prod = row.Producto;
-    if (!aggregation[prod]) {
-      aggregation[prod] = {
-        producto: prod,
+    const { producto, cantidad, totalVenta } = extractRowMetrics(row);
+    if (!aggregation[producto]) {
+      aggregation[producto] = {
+        producto: producto,
         totalUnidades: 0,
         totalVentas: 0,
         transacciones: 0
       };
     }
-    aggregation[prod].totalUnidades += (row.Cantidad || 1);
-    aggregation[prod].totalVentas += (row.Total_Venta || (row.Cantidad * row.Precio) || 0);
-    aggregation[prod].transacciones += 1;
+    aggregation[producto].totalUnidades += cantidad;
+    aggregation[producto].totalVentas += totalVenta;
+    aggregation[producto].transacciones += 1;
   });
 
   Object.values(aggregation).forEach(a => {
     a.totalVentas = Math.round(a.totalVentas * 100) / 100;
   });
 
-  const durationMs = Math.round(performance.now() - startTime + 1180);
+  // Latencia Spark en memoria proporcional
+  const baseLatency = (safeData.length * 0.058) + 60;
+  const durationMs = Math.round(baseLatency);
 
   const logs = [
     `[INFO] org.apache.spark.SparkContext: Running Spark version 3.4.1 (Java 17 / Scala 2.12)`,
     `[INFO] org.apache.spark.SparkContext: Submitted application: DatastoreProductAggregationApp`,
     `[INFO] org.apache.spark.internal.Logging: Created SparkSession with master local[4]`,
-    `[INFO] org.apache.spark.scheduler.DAGScheduler: Registering RDD 1 (map at SparkApp.py:18)`,
-    `[INFO] org.apache.spark.scheduler.DAGScheduler: Got job 0 (collect at SparkApp.py:22) with 4 output partitions`,
+    `[INFO] org.apache.spark.scheduler.DAGScheduler: Ingested ${safeData.length} records into DataFrame / ParallelCollectionRDD`,
+    `[INFO] org.apache.spark.scheduler.DAGScheduler: Got job 0 (collect) with 4 output partitions`,
     `[INFO] org.apache.spark.scheduler.DAGScheduler: Submitting ResultStage 1 (In-Memory Pipeline, Zero Disk Spill)`,
-    `[INFO] org.apache.spark.scheduler.TaskSetManager: Finished task 0.0 in stage 1.0 (TID 0) in 124 ms`,
-    `[INFO] org.apache.spark.scheduler.DAGScheduler: ResultStage 1 (collect at SparkApp.py:22) finished in ${(durationMs/1000).toFixed(3)} s`,
-    `[INFO] org.apache.spark.scheduler.DAGScheduler: Job 0 finished: collect at SparkApp.py:22, took ${(durationMs/1000).toFixed(3)} s`
+    `[INFO] org.apache.spark.scheduler.TaskSetManager: Finished tasks in stage 1.0 (TID 0-3, PROCESS_LOCAL)`,
+    `[INFO] org.apache.spark.scheduler.DAGScheduler: Job 0 finished: collect() took ${(durationMs/1000).toFixed(3)} s`
   ];
 
   return {
     engine: 'Apache Spark',
     executionTimeMs: durationMs,
     latencyFormatted: `${(durationMs / 1000).toFixed(2)} s`,
-    memoryUsedMB: 512,
+    memoryUsedMB: Math.min(1024, Math.max(128, Math.round(safeData.length * 0.025))),
     diskSpillMB: 0.0,
     partitions: 4,
     reduceOutput: aggregation,
     dagStages: [
-      { id: 'Stage 0', name: 'ParallelCollectionRDD / DataFrame Ingestion', transformation: 'source.map()' },
+      { id: 'Stage 0', name: 'ParallelCollectionRDD / DataFrame Ingestion', transformation: `source.read(${safeData.length} rows)` },
       { id: 'Stage 1', name: 'ShuffleExchange / PartitionBy(Hash)', transformation: 'groupBy(Producto)' },
       { id: 'Stage 2', name: 'AggregateInPlace / In-Memory Accumulator', transformation: 'sum(Cantidad), sum(Total_Venta)' },
       { id: 'Stage 3', name: 'Action: collect()', transformation: 'Result Array to Driver' }
@@ -288,53 +310,53 @@ export const runApacheFlink = (dataset) => {
   const startTime = performance.now();
 
   const streamState = {};
-  let totalCheckpoints = 12;
+  let totalCheckpoints = Math.max(2, Math.min(24, Math.round(safeData.length / 1500)));
 
   safeData.forEach((row) => {
-    const key = row.Producto;
-    if (!streamState[key]) {
-      streamState[key] = {
-        producto: key,
+    const { producto, cantidad, totalVenta } = extractRowMetrics(row);
+    const fecha = row.Fecha || row.fecha || '2026-01-01';
+    if (!streamState[producto]) {
+      streamState[producto] = {
+        producto: producto,
         totalUnidades: 0,
         totalVentas: 0,
         transacciones: 0,
-        lastEventTime: row.Fecha
+        lastEventTime: fecha
       };
     }
-    streamState[key].totalUnidades += (row.Cantidad || 1);
-    streamState[key].totalVentas += (row.Total_Venta || (row.Cantidad * row.Precio) || 0);
-    streamState[key].transacciones += 1;
-    streamState[key].lastEventTime = row.Fecha;
+    streamState[producto].totalUnidades += cantidad;
+    streamState[producto].totalVentas += totalVenta;
+    streamState[producto].transacciones += 1;
+    streamState[producto].lastEventTime = fecha;
   });
 
   Object.values(streamState).forEach(s => {
     s.totalVentas = Math.round(s.totalVentas * 100) / 100;
   });
 
-  const durationMs = Math.round(performance.now() - startTime + 790);
+  // Latencia Flink Stream proporcional
+  const baseLatency = (safeData.length * 0.038) + 40;
+  const durationMs = Math.round(baseLatency);
 
   const logs = [
     `[INFO] org.apache.flink.runtime.minicluster.MiniCluster: Starting Flink MiniCluster v1.17.1 (1 TaskManagers, 4 Slots)`,
     `[INFO] org.apache.flink.runtime.dispatcher.StandaloneDispatcher: Dispatcher initialized with JobGraph: DatastoreStreamJob`,
-    `[INFO] org.apache.flink.runtime.executiongraph.ExecutionGraph: Job DatastoreStreamJob (1725459876543) switched to state RUNNING.`,
-    `[INFO] org.apache.flink.streaming.runtime.tasks.StreamTask: Initializing KeyedStream state backend (MemoryStateBackend / RocksDB)`,
-    `[INFO] org.apache.flink.runtime.checkpoint.CheckpointCoordinator: Completed checkpoint 1 for job 1725459876543 in 18 ms.`,
-    `[INFO] org.apache.flink.streaming.api.operators.StreamingRuntimeContext: Ingested ${safeData.length} events through TumblingEventTimeWindow`,
+    `[INFO] org.apache.flink.runtime.executiongraph.ExecutionGraph: Job DatastoreStreamJob switched to state RUNNING.`,
+    `[INFO] org.apache.flink.streaming.runtime.tasks.StreamTask: Ingesting ${safeData.length} stream events into KeyedStream state backend`,
     `[INFO] org.apache.flink.runtime.checkpoint.CheckpointCoordinator: Completed checkpoint ${totalCheckpoints} (State: 100% Consistent, 0 Loss)`,
-    `[INFO] org.apache.flink.runtime.executiongraph.ExecutionGraph: Job DatastoreStreamJob reached EOF. Flushed state to Sink.`,
-    `[INFO] org.apache.flink.runtime.executiongraph.ExecutionGraph: Job DatastoreStreamJob switched to state FINISHED in ${(durationMs/1000).toFixed(3)} s`
+    `[INFO] org.apache.flink.runtime.executiongraph.ExecutionGraph: Stream Job reached EOF. Flushed state to Sink in ${(durationMs/1000).toFixed(3)} s`
   ];
 
   return {
     engine: 'Apache Flink',
     executionTimeMs: durationMs,
     latencyFormatted: `${(durationMs / 1000).toFixed(2)} s`,
-    memoryUsedMB: 256,
+    memoryUsedMB: Math.min(512, Math.max(64, Math.round(safeData.length * 0.015))),
     diskSpillMB: 0.0,
     checkpointsCompleted: totalCheckpoints,
     reduceOutput: streamState,
     streamPipeline: [
-      { step: '1. Source Stream', detail: 'EventStream Ingestion (Record-by-Record FIFO)' },
+      { step: '1. Source Stream', detail: `EventStream Ingestion (${safeData.length} records)` },
       { step: '2. Watermark & Timestamps', detail: 'EventTime Assigner & BoundedOutOfOrderness' },
       { step: '3. KeyedStream Partition', detail: 'KeyBy(r -> r.Producto) Stateful Partitioning' },
       { step: '4. Managed State Accumulator', detail: 'RocksDB StateBackend / In-Memory Checkpoints' },
@@ -357,9 +379,9 @@ export const getTechnicalComparisonMatrix = () => [
   },
   {
     criterion: 'Latencia y Rendimiento',
-    hadoop: 'Alta (~18.4 s) por persistencia intermedia en HDFS',
-    spark: 'Ultra baja (~1.2 s) por cálculo 100% en RAM',
-    flink: 'Mínima / Tiempo Real (~0.8 s) en pipelines streaming',
+    hadoop: 'Alta por persistencia intermedia en HDFS (Spill a disco)',
+    spark: 'Ultra baja por cálculo 100% en memoria RAM',
+    flink: 'Mínima en micro-pipelining y streaming continuo',
     winner: 'flink'
   },
   {

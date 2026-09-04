@@ -39,7 +39,7 @@ export const DataProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dataSourceInfo, setDataSourceInfo] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'charts', 'insights', 'report'
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'lab', 'adhoc', 'charts', 'insights', 'report'
 
   // Filtros reactivos globales
   const [filters, setFilters] = useState({
@@ -99,6 +99,70 @@ export const DataProvider = ({ children }) => {
     setError(null);
   }, []);
 
+  // Función para cargar un dataset personalizado subido por el usuario en tiempo real
+  const uploadCustomDataset = useCallback((cleanRows, fileName = 'Archivo Subido') => {
+    if (!cleanRows || !Array.isArray(cleanRows) || cleanRows.length === 0) return;
+    
+    const cities = Array.from(new Set(cleanRows.map(r => r.Ciudad || r.ciudad))).filter(Boolean).sort();
+    const categories = Array.from(new Set(cleanRows.map(r => r.Categoría || r.categoria))).filter(Boolean).sort();
+    const products = Array.from(new Set(cleanRows.map(r => r.Producto || r.producto))).filter(Boolean).sort();
+
+    const processed = cleanRows.map((r, idx) => {
+      const fechaStr = r.Fecha || r.fecha || '2026-01-01';
+      const parts = String(fechaStr).split('-');
+      const year = parts.length === 3 ? parseInt(parts[0], 10) : 2026;
+      const month = parts.length === 3 ? parseInt(parts[1], 10) - 1 : 0;
+      const day = parts.length === 3 ? parseInt(parts[2], 10) : 1;
+      const parsedDate = new Date(year, month, day);
+
+      const cant = Number(r.Cantidad ?? r.cantidad ?? 1);
+      const prec = Number(r.Precio ?? r.precio ?? 0);
+      const total = Number(r.Total_Venta ?? r.total_venta ?? (cant * prec));
+
+      return {
+        id: idx + 1,
+        Fecha: fechaStr,
+        fechaRaw: fechaStr,
+        fechaObj: parsedDate,
+        fechaTimestamp: parsedDate.getTime(),
+        year: year,
+        monthIndex: month,
+        monthName: r.Mes_Nombre || 'Mes',
+        monthShort: r.Mes_Nombre ? r.Mes_Nombre.slice(0, 3) : 'Mes',
+        monthKey: `${year}-${String(month + 1).padStart(2, '0')}`,
+        day: day,
+        quarter: r.Trimestre || `Q${Math.floor(month / 3) + 1}`,
+        Producto: r.Producto || r.producto || 'Producto',
+        producto: r.Producto || r.producto || 'Producto',
+        Categoría: r.Categoría || r.categoria || 'General',
+        categoria: r.Categoría || r.categoria || 'General',
+        Cantidad: cant,
+        cantidad: cant,
+        Precio: prec,
+        precio: prec,
+        Ciudad: r.Ciudad || r.ciudad || 'Lima',
+        ciudad: r.Ciudad || r.ciudad || 'Lima',
+        Total_Venta: total,
+        totalVenta: total
+      };
+    });
+
+    const validTimestamps = processed.map(r => r.fechaTimestamp).filter(t => t > 0);
+    const minDate = validTimestamps.length > 0 ? new Date(Math.min(...validTimestamps)) : new Date(2026, 0, 1);
+    const maxDate = validTimestamps.length > 0 ? new Date(Math.max(...validTimestamps)) : new Date(2026, 11, 31);
+
+    applyLoadedData({
+      data: processed,
+      totalRows: cleanRows.length,
+      validRows: processed.length,
+      invalidCount: 0,
+      uniqueCities: cities,
+      uniqueCategories: categories,
+      uniqueProducts: products,
+      dateRange: { min: minDate, max: maxDate }
+    }, `Archivo Subido: ${fileName}`, 15);
+  }, [applyLoadedData]);
+
   // Carga automática del dataset limpio del pipeline HDFS / MongoDB
   const loadBigDataPipelineDataset = useCallback(async () => {
     setLoading(true);
@@ -115,7 +179,6 @@ export const DataProvider = ({ children }) => {
         const products = Array.from(new Set(jsonData.map(r => r.Producto))).filter(Boolean).sort();
         
         const processed = jsonData.map((r, idx) => {
-          // Parseo seguro de fecha YYYY-MM-DD
           const parts = r.Fecha.split('-');
           const year = parseInt(parts[0], 10);
           const month = parseInt(parts[1], 10) - 1;
@@ -124,6 +187,7 @@ export const DataProvider = ({ children }) => {
 
           return {
             id: idx + 1,
+            Fecha: r.Fecha,
             fechaRaw: r.Fecha,
             fechaObj: parsedDate,
             fechaTimestamp: parsedDate.getTime(),
@@ -134,11 +198,17 @@ export const DataProvider = ({ children }) => {
             monthKey: `${year}-${String(month + 1).padStart(2, '0')}`,
             day: r.Dia || day,
             quarter: r.Trimestre || `Q${Math.floor(month / 3) + 1}`,
+            Producto: r.Producto,
             producto: r.Producto,
+            Categoría: r.Categoría,
             categoria: r.Categoría,
+            Cantidad: r.Cantidad,
             cantidad: r.Cantidad,
+            Precio: r.Precio,
             precio: r.Precio,
+            Ciudad: r.Ciudad,
             ciudad: r.Ciudad,
+            Total_Venta: r.Total_Venta || (r.Cantidad * r.Precio),
             totalVenta: r.Total_Venta || (r.Cantidad * r.Precio)
           };
         });
@@ -254,6 +324,7 @@ export const DataProvider = ({ children }) => {
     error,
     dataSourceInfo,
     loadBigDataPipelineDataset,
+    uploadCustomDataset,
     activeTab,
     setActiveTab
   };

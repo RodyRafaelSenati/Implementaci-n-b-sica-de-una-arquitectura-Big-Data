@@ -21,27 +21,34 @@ import { ModuleApacheFlink } from './ModuleApacheFlink';
 import { BenchmarkMatrix } from './BenchmarkMatrix';
 
 export const BigDataLab = () => {
-  const { filteredDataset, rawDataset, theme } = useData();
+  const { filteredDataset, loadBigDataPipelineDataset, uploadCustomDataset, theme } = useData();
   const [labTab, setLabTab] = useState('all'); // 'all', 'ingestion', 'hadoop', 'spark', 'flink', 'benchmark'
   const [activeDataset, setActiveDataset] = useState(filteredDataset);
   const [activeSourceLabel, setActiveSourceLabel] = useState('ventas_clean.csv (Dataset Clúster)');
   const isDark = theme === 'dark';
 
-  // Sincronizar dataset si filteredDataset inicial cambia
+  // Sincronizar dataset cuando filteredDataset cambia
   useEffect(() => {
-    if (filteredDataset && filteredDataset.length > 0 && activeSourceLabel.includes('ventas_clean.csv')) {
+    if (filteredDataset && filteredDataset.length > 0) {
       setActiveDataset(filteredDataset);
     }
-  }, [filteredDataset, activeSourceLabel]);
+  }, [filteredDataset]);
 
   const handleDatasetCleaned = (newCleanData, fileName) => {
     setActiveDataset(newCleanData);
     setActiveSourceLabel(fileName ? `Archivo Subido: ${fileName}` : 'Nuevo Dataset Personalizado');
+    
+    // Propagar también al contexto global para sincronía total
+    if (uploadCustomDataset) {
+      uploadCustomDataset(newCleanData, fileName);
+    }
   };
 
   const handleResetDefaultDataset = () => {
-    setActiveDataset(filteredDataset);
     setActiveSourceLabel('ventas_clean.csv (Dataset Clúster)');
+    if (loadBigDataPipelineDataset) {
+      loadBigDataPipelineDataset();
+    }
   };
 
   const tabs = [
@@ -68,13 +75,13 @@ export const BigDataLab = () => {
               Benchmarking Comparativo: Hadoop vs. Spark vs. Flink
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Ejecuta la misma agregación analítica (<strong>Total de Ventas y Unidades por Producto</strong>) a través de los tres motores distribuidos. Sube cualquier archivo CSV para contrastar resultados en tiempo real.
+              Ejecuta la misma agregación analítica (<strong>Total de Ventas y Unidades por Producto</strong>) a través de los tres motores distribuidos. Sube cualquier archivo CSV para contrastar resultados y latencias en tiempo real.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="px-4 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-              <span className="text-[10px] text-slate-400 block uppercase">Registros Procesados</span>
+              <span className="text-[10px] text-slate-400 block uppercase">Registros en Proceso</span>
               <span className="text-base font-black text-emerald-400 font-mono">
                 {activeDataset ? activeDataset.length.toLocaleString() : 0}
               </span>
