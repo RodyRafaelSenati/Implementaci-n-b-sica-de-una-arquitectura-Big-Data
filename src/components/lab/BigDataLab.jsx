@@ -133,6 +133,7 @@ export const BigDataLab = () => {
         <div className="space-y-12 animate-fade-in">
           <ModuleIngestionClean 
             currentDataset={activeDataset} 
+            onProcessDataset={handleDatasetCleaned}
             onDatasetCleaned={handleDatasetCleaned} 
             onResetDefaultDataset={handleResetDefaultDataset}
           />
@@ -148,6 +149,7 @@ export const BigDataLab = () => {
         <div className="animate-fade-in">
           <ModuleIngestionClean 
             currentDataset={activeDataset} 
+            onProcessDataset={handleDatasetCleaned}
             onDatasetCleaned={handleDatasetCleaned} 
             onResetDefaultDataset={handleResetDefaultDataset}
           />
