@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Server, 
   Terminal, 
@@ -20,6 +20,13 @@ export const ModuleHadoopMapReduce = ({ dataset }) => {
   const [executionResult, setExecutionResult] = useState(() => runHadoopMapReduce(dataset));
   const [isRunning, setIsRunning] = useState(false);
   const [activeStep, setActiveStep] = useState('map'); // 'map', 'shuffle', 'reduce', 'hdfs'
+
+  // Sincronizar automáticamente cuando se sube un nuevo dataset
+  useEffect(() => {
+    if (dataset && Array.isArray(dataset) && dataset.length > 0) {
+      setExecutionResult(runHadoopMapReduce(dataset));
+    }
+  }, [dataset]);
 
   const handleRunMapReduce = () => {
     setIsRunning(true);
@@ -133,7 +140,7 @@ export const ModuleHadoopMapReduce = ({ dataset }) => {
         {activeStep === 'map' && (
           <div className="space-y-3 animate-fade-in">
             <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-xl text-xs text-amber-200">
-              <strong>Fase 1 (MAPPER):</strong> Cada registro de <code>ventas_clean.csv</code> se transforma en una tupla clave-valor independiente con formato <code>(Producto, &#123; ventas: Total_Venta, unidades: Cantidad &#125;)</code>.
+              <strong>Fase 1 (MAPPER):</strong> Cada registro del dataset se transforma en una tupla clave-valor independiente con formato <code>(Producto, &#123; ventas: Total_Venta, unidades: Cantidad &#125;)</code>.
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">

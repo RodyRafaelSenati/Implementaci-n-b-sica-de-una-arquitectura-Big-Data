@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BarChart2, 
   Cpu, 
@@ -26,13 +26,21 @@ import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { getBaseTooltipOptions } from '../charts/chartConfig';
 
 export const BenchmarkMatrix = ({ dataset, isDark }) => {
-  const [selectedEngineView, setSelectedEngineView] = useState('all'); // 'all', 'hadoop', 'spark', 'flink'
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [runProgress, setRunProgress] = useState(0);
 
   const [hadoopResult, setHadoopResult] = useState(() => runHadoopMapReduce(dataset));
   const [sparkResult, setSparkResult] = useState(() => runApacheSpark(dataset));
   const [flinkResult, setFlinkResult] = useState(() => runApacheFlink(dataset));
+
+  // Sincronizar automáticamente cuando el dataset cambia
+  useEffect(() => {
+    if (dataset && Array.isArray(dataset) && dataset.length > 0) {
+      setHadoopResult(runHadoopMapReduce(dataset));
+      setSparkResult(runApacheSpark(dataset));
+      setFlinkResult(runApacheFlink(dataset));
+    }
+  }, [dataset]);
 
   const handleRunFullBenchmark = () => {
     setIsRunningAll(true);
@@ -59,7 +67,7 @@ export const BenchmarkMatrix = ({ dataset, isDark }) => {
 
   // Lista de productos reducidos para verificar consistencia matemática
   const productKeys = useMemo(() => {
-    return Object.keys(hadoopResult.reduceOutput).sort();
+    return Object.keys(hadoopResult.reduceOutput || {}).sort();
   }, [hadoopResult]);
 
   // Datos para el gráfico comparativo de latencia (Chart.js)
@@ -226,7 +234,7 @@ export const BenchmarkMatrix = ({ dataset, isDark }) => {
             <BarChart2 className="w-4 h-4 text-indigo-400" />
             <span>Benchmark de Latencia de Procesamiento (Menor tiempo = Mayor eficiencia)</span>
           </span>
-          <span className="text-[11px] text-slate-400 font-mono">Dataset: 19,921 registros</span>
+          <span className="text-[11px] text-slate-400 font-mono">Dataset: {formatNumber(dataset.length)} registros</span>
         </div>
 
         <div className="h-[220px] w-full relative">
@@ -269,9 +277,9 @@ export const BenchmarkMatrix = ({ dataset, isDark }) => {
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-mono">
               {productKeys.map((prod, idx) => {
-                const h = hadoopResult.reduceOutput[prod];
-                const s = sparkResult.reduceOutput[prod];
-                const f = flinkResult.reduceOutput[prod];
+                const h = hadoopResult.reduceOutput[prod] || { totalUnidades: 0, totalVentas: 0 };
+                const s = sparkResult.reduceOutput[prod] || { totalUnidades: 0, totalVentas: 0 };
+                const f = flinkResult.reduceOutput[prod] || { totalUnidades: 0, totalVentas: 0 };
 
                 const isConsistent = h.totalUnidades === s.totalUnidades && s.totalUnidades === f.totalUnidades &&
                                      Math.abs(h.totalVentas - s.totalVentas) < 0.01;
@@ -290,8 +298,10 @@ export const BenchmarkMatrix = ({ dataset, isDark }) => {
                       {formatNumber(f.totalUnidades)} u. | {formatCurrency(f.totalVentas)}
                     </td>
                     <td className="py-2 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                        MATCH
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        isConsistent ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                      }`}>
+                        {isConsistent ? 'MATCH' : 'MISMATCH'}
                       </span>
                     </td>
                   </tr>

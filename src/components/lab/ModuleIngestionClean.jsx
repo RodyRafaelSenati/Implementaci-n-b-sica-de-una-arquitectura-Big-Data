@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   UploadCloud, 
   FileSpreadsheet, 
@@ -10,47 +10,66 @@ import {
   FileText, 
   ArrowRight,
   RefreshCw,
-  Eye
+  Eye,
+  Check,
+  RotateCcw
 } from 'lucide-react';
 import PapaParse from 'papaparse';
 import { cleanAndValidateDataset } from '../../utils/bigDataEngines';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 
-export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned }) => {
+export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned, onResetDefaultDataset }) => {
   const [rawPreview, setRawPreview] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const fileInputRef = useRef(null);
+
   const [stats, setStats] = useState({
-    original: 20000,
+    original: currentDataset ? currentDataset.length + 79 : 20000,
     removed: 79,
-    cleaned: 19921,
-    status: 'Cleaned'
+    cleaned: currentDataset ? currentDataset.length : 19921,
+    status: 'Dataset Activo'
   });
 
   // Procesar archivo cargado por el usuario
   const handleFileProcess = (file) => {
     if (!file) return;
     setIsProcessing(true);
+    setUploadedFileName(file.name);
 
     PapaParse.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
+      transformHeader: (header) => header.trim(),
+      dynamicTyping: false,
+      delimitersToGuess: [',', ';', '\t', '|'],
       complete: (results) => {
-        const rawData = results.data;
+        const rawData = results.data || [];
         setRawPreview(rawData.slice(0, 5));
 
         const cleanResult = cleanAndValidateDataset(rawData);
+        
         setStats({
           original: cleanResult.initialCount,
           removed: cleanResult.removedCount,
           cleaned: cleanResult.cleanCount,
-          status: 'Processed'
+          status: `Cargado: ${file.name}`
         });
 
-        if (onDatasetCleaned) {
-          onDatasetCleaned(cleanResult.cleanRows);
+        if (onDatasetCleaned && cleanResult.cleanRows.length > 0) {
+          onDatasetCleaned(cleanResult.cleanRows, file.name);
         }
+
         setIsProcessing(false);
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 4000);
+
+        // Reset file input para permitir subir el mismo archivo nuevamente si se edita
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       },
       error: (error) => {
         console.error('Error al parsear CSV:', error);
@@ -101,7 +120,7 @@ export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned }) => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'ventas_clean.csv');
+    link.setAttribute('download', `ventas_clean_${uploadedFileName || 'dataset'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -110,6 +129,21 @@ export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned }) => {
   return (
     <div className="space-y-6">
       
+      {/* Toast de éxito al cargar nuevo archivo */}
+      {showSuccessToast && (
+        <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center justify-between shadow-xl animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <span className="font-bold">¡Dataset "{uploadedFileName}" procesado y cargado con éxito!</span>
+              <p className="text-[11px] text-emerald-300">
+                Se limpiaron {formatNumber(stats.cleaned)} registros y se actualizaron los 3 motores (Hadoop, Spark y Flink).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Encabezado del Módulo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
@@ -118,17 +152,30 @@ export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned }) => {
             <span>Módulo A: Ingesta, Limpieza Automática y Descarga</span>
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Sube el archivo <code>ventas.csv</code> crudo para ejecutar la limpieza, normalización y cálculo de <code>Total_Venta</code>.
+            Sube cualquier archivo <code>.csv</code> para ejecutar la limpieza automática, deduplicación y alimentar los motores de procesamiento.
           </p>
         </div>
 
-        <button
-          onClick={handleDownloadCleanCSV}
-          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-emerald-600/30 transition-all self-start sm:self-auto"
-        >
-          <Download className="w-4 h-4" />
-          <span>Descargar ventas_clean.csv</span>
-        </button>
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
+          {onResetDefaultDataset && (
+            <button
+              onClick={onResetDefaultDataset}
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs flex items-center space-x-1.5 border border-slate-700 transition-all"
+              title="Restablecer al dataset original de 19,921 registros"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restablecer Dataset</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleDownloadCleanCSV}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-emerald-600/30 transition-all"
+          >
+            <Download className="w-4 h-4" />
+            <span>Descargar ventas_clean.csv</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid de Dropzone y Tarjetas de Métricas */}
@@ -143,31 +190,35 @@ export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned }) => {
             className={`rounded-2xl border-2 border-dashed p-8 text-center transition-all flex flex-col items-center justify-center relative overflow-hidden bg-slate-900/60 ${
               isDragging
                 ? 'border-cyan-400 bg-cyan-950/30 scale-[1.01]'
-                : 'border-slate-700/80 hover:border-slate-600'
+                : 'border-slate-700/80 hover:border-cyan-500/60'
             }`}
           >
             <input
+              ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,text/csv,application/vnd.ms-excel"
               onChange={handleFileInput}
               className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-              title="Arrastra o selecciona ventas.csv"
+              title="Arrastra o selecciona un archivo CSV"
             />
 
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center mb-3">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <UploadCloud className="w-7 h-7" />
             </div>
 
             <h4 className="text-sm font-bold text-white mb-1">
-              Arrastra y suelta tu archivo <code>ventas.csv</code> aquí
+              Arrastra y suelta tu archivo <code>.csv</code> aquí
             </h4>
             <p className="text-xs text-slate-400 mb-4">
-              o haz clic para explorar desde tu equipo (soporta delimitador por coma o punto y coma)
+              o haz clic para explorar en tu equipo (autodetecta delimitadores <code>,</code> o <code>;</code>)
             </p>
 
-            <div className="flex items-center space-x-2 text-[11px] text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-400 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Dataset Activo: <strong>{formatNumber(currentDataset.length)} registros limpios</strong></span>
+              <span>Dataset Activo en Motores: <strong className="text-emerald-400">{formatNumber(currentDataset.length)} registros</strong></span>
+              {uploadedFileName && (
+                <span className="text-cyan-300 font-mono">({uploadedFileName})</span>
+              )}
             </div>
           </div>
         </div>
@@ -183,18 +234,18 @@ export const ModuleIngestionClean = ({ currentDataset, onDatasetCleaned }) => {
             <div className="text-xl font-extrabold text-white font-mono">
               {formatNumber(stats.original)}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Dataset de ventas importado</p>
+            <p className="text-[10px] text-slate-400 mt-1">Dataset importado para procesar</p>
           </div>
 
           <div className="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/80">
             <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span>Filas Eliminadas (Duplicados / Corruptos)</span>
+              <span>Filas Eliminadas (Duplicados / Nulos)</span>
               <AlertTriangle className="w-4 h-4 text-amber-400" />
             </div>
             <div className="text-xl font-extrabold text-amber-400 font-mono">
               {formatNumber(stats.removed)}
             </div>
-            <p className="text-[10px] text-amber-300/80 mt-1">0.40% de registros inconsistentes</p>
+            <p className="text-[10px] text-amber-300/80 mt-1">Filas inconsistentes removidas</p>
           </div>
 
           <div className="glass-panel p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20">

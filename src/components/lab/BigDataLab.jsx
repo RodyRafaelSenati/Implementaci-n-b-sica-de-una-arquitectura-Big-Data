@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FlaskConical, 
   UploadCloud, 
@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   Sparkles,
   ArrowRight,
-  Database
+  Database,
+  FileCheck2
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { ModuleIngestionClean } from './ModuleIngestionClean';
@@ -20,13 +21,27 @@ import { ModuleApacheFlink } from './ModuleApacheFlink';
 import { BenchmarkMatrix } from './BenchmarkMatrix';
 
 export const BigDataLab = () => {
-  const { filteredDataset, theme } = useData();
+  const { filteredDataset, rawDataset, theme } = useData();
   const [labTab, setLabTab] = useState('all'); // 'all', 'ingestion', 'hadoop', 'spark', 'flink', 'benchmark'
   const [activeDataset, setActiveDataset] = useState(filteredDataset);
+  const [activeSourceLabel, setActiveSourceLabel] = useState('ventas_clean.csv (Dataset Clúster)');
   const isDark = theme === 'dark';
 
-  const handleDatasetCleaned = (newCleanData) => {
+  // Sincronizar dataset si filteredDataset inicial cambia
+  useEffect(() => {
+    if (filteredDataset && filteredDataset.length > 0 && activeSourceLabel.includes('ventas_clean.csv')) {
+      setActiveDataset(filteredDataset);
+    }
+  }, [filteredDataset, activeSourceLabel]);
+
+  const handleDatasetCleaned = (newCleanData, fileName) => {
     setActiveDataset(newCleanData);
+    setActiveSourceLabel(fileName ? `Archivo Subido: ${fileName}` : 'Nuevo Dataset Personalizado');
+  };
+
+  const handleResetDefaultDataset = () => {
+    setActiveDataset(filteredDataset);
+    setActiveSourceLabel('ventas_clean.csv (Dataset Clúster)');
   };
 
   const tabs = [
@@ -53,7 +68,7 @@ export const BigDataLab = () => {
               Benchmarking Comparativo: Hadoop vs. Spark vs. Flink
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Ejecuta la misma agregación analítica (<strong>Total de Ventas y Unidades por Producto</strong>) a través de los tres paradigmas de procesamiento distribuido más influyentes de la industria Big Data.
+              Ejecuta la misma agregación analítica (<strong>Total de Ventas y Unidades por Producto</strong>) a través de los tres motores distribuidos. Sube cualquier archivo CSV para contrastar resultados en tiempo real.
             </p>
           </div>
 
@@ -61,13 +76,13 @@ export const BigDataLab = () => {
             <div className="px-4 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
               <span className="text-[10px] text-slate-400 block uppercase">Registros Procesados</span>
               <span className="text-base font-black text-emerald-400 font-mono">
-                {activeDataset.length.toLocaleString()}
+                {activeDataset ? activeDataset.length.toLocaleString() : 0}
               </span>
             </div>
             <div className="px-4 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-              <span className="text-[10px] text-slate-400 block uppercase">Operación Analítica</span>
-              <span className="text-base font-bold text-cyan-400">
-                Sum(Ventas), Sum(Unidades)
+              <span className="text-[10px] text-slate-400 block uppercase">Fuente de Datos</span>
+              <span className="text-xs font-bold text-cyan-400 truncate max-w-[160px] block" title={activeSourceLabel}>
+                {activeSourceLabel}
               </span>
             </div>
           </div>
@@ -112,6 +127,7 @@ export const BigDataLab = () => {
           <ModuleIngestionClean 
             currentDataset={activeDataset} 
             onDatasetCleaned={handleDatasetCleaned} 
+            onResetDefaultDataset={handleResetDefaultDataset}
           />
           <ModuleHadoopMapReduce dataset={activeDataset} />
           <ModuleApacheSpark dataset={activeDataset} />
@@ -126,6 +142,7 @@ export const BigDataLab = () => {
           <ModuleIngestionClean 
             currentDataset={activeDataset} 
             onDatasetCleaned={handleDatasetCleaned} 
+            onResetDefaultDataset={handleResetDefaultDataset}
           />
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Zap, 
   Cpu, 
@@ -19,6 +19,13 @@ export const ModuleApacheSpark = ({ dataset }) => {
   const [executionResult, setExecutionResult] = useState(() => runApacheSpark(dataset));
   const [isRunning, setIsRunning] = useState(false);
   const [showCode, setShowCode] = useState(false);
+
+  // Sincronizar automáticamente cuando se sube un nuevo dataset
+  useEffect(() => {
+    if (dataset && Array.isArray(dataset) && dataset.length > 0) {
+      setExecutionResult(runApacheSpark(dataset));
+    }
+  }, [dataset]);
 
   const handleRunSpark = () => {
     setIsRunning(true);
