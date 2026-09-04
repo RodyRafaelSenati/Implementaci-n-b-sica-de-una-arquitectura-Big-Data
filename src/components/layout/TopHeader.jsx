@@ -8,7 +8,8 @@ import {
   Calendar,
   Search,
   Activity,
-  Sliders
+  Sliders,
+  FlaskConical
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { formatNumber } from '../../utils/formatters';
@@ -22,7 +23,8 @@ export const TopHeader = ({ onOpenDataTable }) => {
   } = useData();
 
   const tabTitles = {
-    dashboard: { title: 'Dashboard Integral de Inteligencia de Negocios', subtitle: 'Vista ejecutiva consolidada, KPIs, gráficos y análisis estratégico' },
+    dashboard: { title: 'Dashboard Integral de Inteligencia de Negocios', subtitle: 'Vista ejecutiva consolidada, KPIs, gráficos y análisis comercial' },
+    lab: { title: 'Laboratorio Comparativo Big Data (Hadoop vs. Spark vs. Flink)', subtitle: 'Procesamiento distribuido, descomposición de paradigmas y matriz de rendimiento' },
     adhoc: { title: 'Panel de Consultas Libres & Ad-Hoc Analytics', subtitle: 'Exploración dimensional dinámica, matrices personalizadas y código MQL' },
     charts: { title: '8 Gráficos Estadísticos & Visualización BI', subtitle: 'Análisis profundo de series de tiempo, correlaciones y categorías' },
     insights: { title: 'Módulo de Insights y Recomendaciones Estratégicas', subtitle: 'Marco de negocio: [RESULTADO] → [INTERPRETACIÓN] → [DECISIÓN PROPUESTA]' },
@@ -38,7 +40,7 @@ export const TopHeader = ({ onOpenDataTable }) => {
         {/* Título de la Sección Activa */}
         <div>
           <div className="flex items-center space-x-2.5">
-            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+            <span className={`w-2.5 h-2.5 rounded-full ${activeTab === 'lab' ? 'bg-cyan-400 animate-pulse' : 'bg-indigo-500'}`}></span>
             <h2 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
               {currentInfo.title}
             </h2>

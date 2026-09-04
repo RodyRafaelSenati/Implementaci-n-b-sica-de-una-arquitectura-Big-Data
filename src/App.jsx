@@ -10,6 +10,7 @@ import { BusinessInsights } from './components/insights/BusinessInsights';
 import { ExecutiveReport } from './components/report/ExecutiveReport';
 import { DataTableModal } from './components/report/DataTableModal';
 import { AdHocQueryBuilder } from './components/adhoc/AdHocQueryBuilder';
+import { BigDataLab } from './components/lab/BigDataLab';
 import { 
   AlertCircle,
   RefreshCw,
@@ -98,10 +99,10 @@ const DashboardContent = () => {
           {rawDataset.length > 0 && (
             <>
               {/* Barra de Filtros Globales Reactivos */}
-              <GlobalFiltersBar />
+              {activeTab !== 'lab' && <GlobalFiltersBar />}
 
               {/* Grid Superior de 6 KPIs con Formato Adaptable */}
-              <KPIGrid />
+              {activeTab !== 'lab' && <KPIGrid />}
 
               {/* Vista según la pestaña activa seleccionada en el Sidebar */}
               {activeTab === 'dashboard' && (
@@ -117,6 +118,13 @@ const DashboardContent = () => {
 
                   {/* 4. Reporte Ejecutivo Resumen */}
                   <ExecutiveReport />
+                </div>
+              )}
+
+              {/* Laboratorio Comparativo Big Data */}
+              {activeTab === 'lab' && (
+                <div className="animate-fade-in">
+                  <BigDataLab />
                 </div>
               )}
 

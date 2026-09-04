@@ -1,0 +1,381 @@
+{
+  "timestamp": "2026-09-04T08:12:27.902612",
+  "records_processed": 19921,
+  "benchmarks": {
+    "hadoop": {
+      "time_seconds": 18.76807872772217,
+      "results": {
+        "Audífonos Pro": {
+          "Producto": "Audífonos Pro",
+          "Total_Unidades": 10103,
+          "Total_Facturacion_PEN": 2530837.5,
+          "Transacciones": 967
+        },
+        "Cable UTP": {
+          "Producto": "Cable UTP",
+          "Total_Unidades": 10362,
+          "Total_Facturacion_PEN": 258288.75,
+          "Transacciones": 977
+        },
+        "Disco SSD 1TB": {
+          "Producto": "Disco SSD 1TB",
+          "Total_Unidades": 10476,
+          "Total_Facturacion_PEN": 3970829.0,
+          "Transacciones": 1017
+        },
+        "Disco SSD 2TB": {
+          "Producto": "Disco SSD 2TB",
+          "Total_Unidades": 11272,
+          "Total_Facturacion_PEN": 7783131.0,
+          "Transacciones": 1034
+        },
+        "Impresora A": {
+          "Producto": "Impresora A",
+          "Total_Unidades": 9874,
+          "Total_Facturacion_PEN": 7707024.0,
+          "Transacciones": 977
+        },
+        "Impresora Multifunción": {
+          "Producto": "Impresora Multifunción",
+          "Total_Unidades": 10630,
+          "Total_Facturacion_PEN": 12225765.0,
+          "Transacciones": 1032
+        },
+        "Laptop A": {
+          "Producto": "Laptop A",
+          "Total_Unidades": 10123,
+          "Total_Facturacion_PEN": 25273375.0,
+          "Transacciones": 970
+        },
+        "Laptop B": {
+          "Producto": "Laptop B",
+          "Total_Unidades": 10585,
+          "Total_Facturacion_PEN": 33786560.0,
+          "Transacciones": 1000
+        },
+        "Laptop C": {
+          "Producto": "Laptop C",
+          "Total_Unidades": 10318,
+          "Total_Facturacion_PEN": 42347875.0,
+          "Transacciones": 995
+        },
+        "Monitor 24": {
+          "Producto": "Monitor 24",
+          "Total_Unidades": 9930,
+          "Total_Facturacion_PEN": 8419930.0,
+          "Transacciones": 948
+        },
+        "Monitor 27": {
+          "Producto": "Monitor 27",
+          "Total_Unidades": 10131,
+          "Total_Facturacion_PEN": 12672375.0,
+          "Transacciones": 995
+        },
+        "Mouse Gamer": {
+          "Producto": "Mouse Gamer",
+          "Total_Unidades": 10130,
+          "Total_Facturacion_PEN": 1813365.0,
+          "Transacciones": 975
+        },
+        "Mouse X": {
+          "Producto": "Mouse X",
+          "Total_Unidades": 10944,
+          "Total_Facturacion_PEN": 546912.5,
+          "Transacciones": 1062
+        },
+        "PC Gamer X": {
+          "Producto": "PC Gamer X",
+          "Total_Unidades": 10610,
+          "Total_Facturacion_PEN": 55130920.0,
+          "Transacciones": 962
+        },
+        "Router WiFi": {
+          "Producto": "Router WiFi",
+          "Total_Unidades": 10333,
+          "Total_Facturacion_PEN": 2366240.0,
+          "Transacciones": 1001
+        },
+        "Switch 8P": {
+          "Producto": "Switch 8P",
+          "Total_Unidades": 10816,
+          "Total_Facturacion_PEN": 3352991.0,
+          "Transacciones": 1021
+        },
+        "Teclado K1": {
+          "Producto": "Teclado K1",
+          "Total_Unidades": 10686,
+          "Total_Facturacion_PEN": 1283028.0,
+          "Transacciones": 998
+        },
+        "USB 128GB": {
+          "Producto": "USB 128GB",
+          "Total_Unidades": 10920,
+          "Total_Facturacion_PEN": 822176.25,
+          "Transacciones": 1025
+        },
+        "USB 64GB": {
+          "Producto": "USB 64GB",
+          "Total_Unidades": 10076,
+          "Total_Facturacion_PEN": 453557.25,
+          "Transacciones": 964
+        },
+        "Webcam HD": {
+          "Producto": "Webcam HD",
+          "Total_Unidades": 10085,
+          "Total_Facturacion_PEN": 1916435.0,
+          "Transacciones": 1001
+        }
+      }
+    },
+    "spark": {
+      "time_seconds": 1.184004955291748,
+      "results": {
+        "Audífonos Pro": {
+          "Producto": "Audífonos Pro",
+          "Total_Unidades": 10103,
+          "Total_Facturacion_PEN": 2530837.5,
+          "Transacciones": 967
+        },
+        "Cable UTP": {
+          "Producto": "Cable UTP",
+          "Total_Unidades": 10362,
+          "Total_Facturacion_PEN": 258288.75,
+          "Transacciones": 977
+        },
+        "Disco SSD 1TB": {
+          "Producto": "Disco SSD 1TB",
+          "Total_Unidades": 10476,
+          "Total_Facturacion_PEN": 3970829.0,
+          "Transacciones": 1017
+        },
+        "Disco SSD 2TB": {
+          "Producto": "Disco SSD 2TB",
+          "Total_Unidades": 11272,
+          "Total_Facturacion_PEN": 7783131.0,
+          "Transacciones": 1034
+        },
+        "Impresora A": {
+          "Producto": "Impresora A",
+          "Total_Unidades": 9874,
+          "Total_Facturacion_PEN": 7707024.0,
+          "Transacciones": 977
+        },
+        "Impresora Multifunción": {
+          "Producto": "Impresora Multifunción",
+          "Total_Unidades": 10630,
+          "Total_Facturacion_PEN": 12225765.0,
+          "Transacciones": 1032
+        },
+        "Laptop A": {
+          "Producto": "Laptop A",
+          "Total_Unidades": 10123,
+          "Total_Facturacion_PEN": 25273375.0,
+          "Transacciones": 970
+        },
+        "Laptop B": {
+          "Producto": "Laptop B",
+          "Total_Unidades": 10585,
+          "Total_Facturacion_PEN": 33786560.0,
+          "Transacciones": 1000
+        },
+        "Laptop C": {
+          "Producto": "Laptop C",
+          "Total_Unidades": 10318,
+          "Total_Facturacion_PEN": 42347875.0,
+          "Transacciones": 995
+        },
+        "Monitor 24": {
+          "Producto": "Monitor 24",
+          "Total_Unidades": 9930,
+          "Total_Facturacion_PEN": 8419930.0,
+          "Transacciones": 948
+        },
+        "Monitor 27": {
+          "Producto": "Monitor 27",
+          "Total_Unidades": 10131,
+          "Total_Facturacion_PEN": 12672375.0,
+          "Transacciones": 995
+        },
+        "Mouse Gamer": {
+          "Producto": "Mouse Gamer",
+          "Total_Unidades": 10130,
+          "Total_Facturacion_PEN": 1813365.0,
+          "Transacciones": 975
+        },
+        "Mouse X": {
+          "Producto": "Mouse X",
+          "Total_Unidades": 10944,
+          "Total_Facturacion_PEN": 546912.5,
+          "Transacciones": 1062
+        },
+        "PC Gamer X": {
+          "Producto": "PC Gamer X",
+          "Total_Unidades": 10610,
+          "Total_Facturacion_PEN": 55130920.0,
+          "Transacciones": 962
+        },
+        "Router WiFi": {
+          "Producto": "Router WiFi",
+          "Total_Unidades": 10333,
+          "Total_Facturacion_PEN": 2366240.0,
+          "Transacciones": 1001
+        },
+        "Switch 8P": {
+          "Producto": "Switch 8P",
+          "Total_Unidades": 10816,
+          "Total_Facturacion_PEN": 3352991.0,
+          "Transacciones": 1021
+        },
+        "Teclado K1": {
+          "Producto": "Teclado K1",
+          "Total_Unidades": 10686,
+          "Total_Facturacion_PEN": 1283028.0,
+          "Transacciones": 998
+        },
+        "USB 128GB": {
+          "Producto": "USB 128GB",
+          "Total_Unidades": 10920,
+          "Total_Facturacion_PEN": 822176.25,
+          "Transacciones": 1025
+        },
+        "USB 64GB": {
+          "Producto": "USB 64GB",
+          "Total_Unidades": 10076,
+          "Total_Facturacion_PEN": 453557.25,
+          "Transacciones": 964
+        },
+        "Webcam HD": {
+          "Producto": "Webcam HD",
+          "Total_Unidades": 10085,
+          "Total_Facturacion_PEN": 1916435.0,
+          "Transacciones": 1001
+        }
+      }
+    },
+    "flink": {
+      "time_seconds": 1.1376285934448243,
+      "results": {
+        "Audífonos Pro": {
+          "Producto": "Audífonos Pro",
+          "Total_Unidades": 10103,
+          "Total_Facturacion_PEN": 2530837.5,
+          "Transacciones": 967
+        },
+        "Cable UTP": {
+          "Producto": "Cable UTP",
+          "Total_Unidades": 10362,
+          "Total_Facturacion_PEN": 258288.75,
+          "Transacciones": 977
+        },
+        "Disco SSD 1TB": {
+          "Producto": "Disco SSD 1TB",
+          "Total_Unidades": 10476,
+          "Total_Facturacion_PEN": 3970829.0,
+          "Transacciones": 1017
+        },
+        "Disco SSD 2TB": {
+          "Producto": "Disco SSD 2TB",
+          "Total_Unidades": 11272,
+          "Total_Facturacion_PEN": 7783131.0,
+          "Transacciones": 1034
+        },
+        "Impresora A": {
+          "Producto": "Impresora A",
+          "Total_Unidades": 9874,
+          "Total_Facturacion_PEN": 7707024.0,
+          "Transacciones": 977
+        },
+        "Impresora Multifunción": {
+          "Producto": "Impresora Multifunción",
+          "Total_Unidades": 10630,
+          "Total_Facturacion_PEN": 12225765.0,
+          "Transacciones": 1032
+        },
+        "Laptop A": {
+          "Producto": "Laptop A",
+          "Total_Unidades": 10123,
+          "Total_Facturacion_PEN": 25273375.0,
+          "Transacciones": 970
+        },
+        "Laptop B": {
+          "Producto": "Laptop B",
+          "Total_Unidades": 10585,
+          "Total_Facturacion_PEN": 33786560.0,
+          "Transacciones": 1000
+        },
+        "Laptop C": {
+          "Producto": "Laptop C",
+          "Total_Unidades": 10318,
+          "Total_Facturacion_PEN": 42347875.0,
+          "Transacciones": 995
+        },
+        "Monitor 24": {
+          "Producto": "Monitor 24",
+          "Total_Unidades": 9930,
+          "Total_Facturacion_PEN": 8419930.0,
+          "Transacciones": 948
+        },
+        "Monitor 27": {
+          "Producto": "Monitor 27",
+          "Total_Unidades": 10131,
+          "Total_Facturacion_PEN": 12672375.0,
+          "Transacciones": 995
+        },
+        "Mouse Gamer": {
+          "Producto": "Mouse Gamer",
+          "Total_Unidades": 10130,
+          "Total_Facturacion_PEN": 1813365.0,
+          "Transacciones": 975
+        },
+        "Mouse X": {
+          "Producto": "Mouse X",
+          "Total_Unidades": 10944,
+          "Total_Facturacion_PEN": 546912.5,
+          "Transacciones": 1062
+        },
+        "PC Gamer X": {
+          "Producto": "PC Gamer X",
+          "Total_Unidades": 10610,
+          "Total_Facturacion_PEN": 55130920.0,
+          "Transacciones": 962
+        },
+        "Router WiFi": {
+          "Producto": "Router WiFi",
+          "Total_Unidades": 10333,
+          "Total_Facturacion_PEN": 2366240.0,
+          "Transacciones": 1001
+        },
+        "Switch 8P": {
+          "Producto": "Switch 8P",
+          "Total_Unidades": 10816,
+          "Total_Facturacion_PEN": 3352991.0,
+          "Transacciones": 1021
+        },
+        "Teclado K1": {
+          "Producto": "Teclado K1",
+          "Total_Unidades": 10686,
+          "Total_Facturacion_PEN": 1283028.0,
+          "Transacciones": 998
+        },
+        "USB 128GB": {
+          "Producto": "USB 128GB",
+          "Total_Unidades": 10920,
+          "Total_Facturacion_PEN": 822176.25,
+          "Transacciones": 1025
+        },
+        "USB 64GB": {
+          "Producto": "USB 64GB",
+          "Total_Unidades": 10076,
+          "Total_Facturacion_PEN": 453557.25,
+          "Transacciones": 964
+        },
+        "Webcam HD": {
+          "Producto": "Webcam HD",
+          "Total_Unidades": 10085,
+          "Total_Facturacion_PEN": 1916435.0,
+          "Transacciones": 1001
+        }
+      }
+    }
+  }
+}

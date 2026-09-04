@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   Building2, 
   LayoutDashboard, 
+  FlaskConical,
   Sliders, 
   BarChart3, 
   Lightbulb, 
@@ -15,7 +16,9 @@ import {
   ChevronRight,
   Server,
   HardDrive,
-  Activity
+  Activity,
+  Zap,
+  Scale
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { formatNumber } from '../../utils/formatters';
@@ -38,6 +41,7 @@ export const Sidebar = ({ onOpenDataTable }) => {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard Integral', icon: LayoutDashboard, badge: 'Principal' },
+    { id: 'lab', label: 'Laboratorio Big Data', icon: FlaskConical, badge: 'Hadoop/Spark/Flink', isHighlight: true },
     { id: 'adhoc', label: 'Consultas Libres Ad-Hoc', icon: Sliders, badge: 'Explorador' },
     { id: 'charts', label: '8 Gráficos BI', icon: BarChart3 },
     { id: 'insights', label: 'Insights & Decisiones', icon: Lightbulb },
@@ -83,7 +87,7 @@ export const Sidebar = ({ onOpenDataTable }) => {
         {/* 2. Navegación Principal */}
         <div className="p-3 space-y-1.5">
           <div className={`px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider ${isCollapsed ? 'hidden' : 'block'}`}>
-            Módulos Analíticos
+            Módulos de Procesamiento
           </div>
 
           {navItems.map((item) => {
@@ -97,18 +101,24 @@ export const Sidebar = ({ onOpenDataTable }) => {
                 title={isCollapsed ? item.label : undefined}
                 className={`w-full flex items-center rounded-xl px-3 py-2.5 transition-all text-xs font-semibold group relative ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80'
+                    ? item.isHighlight 
+                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-lg shadow-cyan-500/30' 
+                      : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                    : item.isHighlight
+                      ? 'text-cyan-300 bg-cyan-950/30 border border-cyan-500/30 hover:bg-cyan-900/40 hover:text-white'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80'
                 } ${isCollapsed ? 'justify-center' : 'justify-between'}`}
               >
                 <div className="flex items-center space-x-3">
-                  <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-cyan-400'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                    isActive ? 'text-white' : item.isHighlight ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'
+                  }`} />
                   {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </div>
 
                 {!isCollapsed && item.badge && (
                   <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-indigo-300 border border-slate-700'
+                    isActive ? 'bg-white/20 text-white' : item.isHighlight ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-slate-800 text-indigo-300 border border-slate-700'
                   }`}>
                     {item.badge}
                   </span>
