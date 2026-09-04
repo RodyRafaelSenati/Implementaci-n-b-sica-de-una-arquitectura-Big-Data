@@ -17,24 +17,52 @@ import { runHadoopMapReduce } from '../../utils/bigDataEngines';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 
 export const ModuleHadoopMapReduce = ({ dataset }) => {
-  const [executionResult, setExecutionResult] = useState(() => runHadoopMapReduce(dataset));
+  const [filterConfig, setFilterConfig] = useState({ type: 'ALL', value: '', label: 'Sin Filtro' });
+  const [executionResult, setExecutionResult] = useState(() => runHadoopMapReduce(dataset, { type: 'ALL', label: 'Sin Filtro' }));
   const [isRunning, setIsRunning] = useState(false);
   const [activeStep, setActiveStep] = useState('map'); // 'map', 'shuffle', 'reduce', 'hdfs'
 
-  // Sincronizar automáticamente cuando se sube un nuevo dataset
+  // Opciones dinámicas para los selectores de filtro
+  const cities = React.useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return Array.from(new Set(dataset.map(r => r.Ciudad || r.ciudad).filter(Boolean))).sort();
+  }, [dataset]);
+
+  const categories = React.useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return Array.from(new Set(dataset.map(r => r.Categoría || r.categoria).filter(Boolean))).sort();
+  }, [dataset]);
+
+  // Sincronizar automáticamente cuando se sube un nuevo dataset o cambia el filtro
   useEffect(() => {
     if (dataset && Array.isArray(dataset) && dataset.length > 0) {
-      setExecutionResult(runHadoopMapReduce(dataset));
+      setExecutionResult(runHadoopMapReduce(dataset, filterConfig));
     }
-  }, [dataset]);
+  }, [dataset, filterConfig]);
+
+  const handleFilterTypeChange = (type) => {
+    if (type === 'ALL') {
+      setFilterConfig({ type: 'ALL', value: '', label: 'Sin Filtro (100% registros)' });
+    } else if (type === 'CITY') {
+      const defaultCity = cities[0] || 'Lima';
+      setFilterConfig({ type: 'CITY', value: defaultCity, label: `Ciudad == "${defaultCity}"` });
+    } else if (type === 'CATEGORY') {
+      const defaultCat = categories[0] || 'Laptops';
+      setFilterConfig({ type: 'CATEGORY', value: defaultCat, label: `Categoría == "${defaultCat}"` });
+    } else if (type === 'MIN_AMOUNT') {
+      setFilterConfig({ type: 'MIN_AMOUNT', value: 1000, label: 'Total_Venta >= S/ 1,000' });
+    } else if (type === 'MIN_UNITS') {
+      setFilterConfig({ type: 'MIN_UNITS', value: 3, label: 'Cantidad >= 3 unidades' });
+    }
+  };
 
   const handleRunMapReduce = () => {
     setIsRunning(true);
     setTimeout(() => {
-      const res = runHadoopMapReduce(dataset);
+      const res = runHadoopMapReduce(dataset, filterConfig);
       setExecutionResult(res);
       setIsRunning(false);
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -60,6 +88,139 @@ export const ModuleHadoopMapReduce = ({ dataset }) => {
           <Play className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
           <span>{isRunning ? 'Ejecutando Job MapReduce...' : 'Re-ejecutar Job Hadoop'}</span>
         </button>
+      </div>
+
+      {/* BARRA DE FILTRADO PERSONALIZADO EN MAPPER */}
+      <div className="glass-panel p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
+          <div className="flex items-center space-x-2">
+            <Code className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
+              Filtro Personalizado en Mapper (FileInputFilter / RecordReader)
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">
+            Registros Filtrados: <strong className="text-amber-400">{formatNumber(executionResult.filteredRecords || 0)}</strong> de {formatNumber(executionResult.totalInputRecords || 0)} ({formatNumber(executionResult.prunedRecords || 0)} descartados en Map)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+          
+          {/* Selector de Método de Filtrado */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Método de Filtro en Mapper
+            </label>
+            <select
+              value={filterConfig.type}
+              onChange={(e) => handleFilterTypeChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+            >
+              <option value="ALL">Sin Filtro (Dataset Completo)</option>
+              <option value="CITY">Por Ciudad / Sede</option>
+              <option value="CATEGORY">Por Categoría de Producto</option>
+              <option value="MIN_AMOUNT">Por Importe Mínimo (Total Venta)</option>
+              <option value="MIN_UNITS">Por Cantidad Mínima de Unidades</option>
+            </select>
+          </div>
+
+          {/* Selector Dinámico de Valor según el tipo */}
+          {filterConfig.type === 'CITY' && (
+            <div>
+              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                Seleccionar Ciudad
+              </label>
+              <select
+                value={filterConfig.value}
+                onChange={(e) => setFilterConfig({
+                  ...filterConfig,
+                  value: e.target.value,
+                  label: `Ciudad == "${e.target.value}"`
+                })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-amber-500/50 text-xs font-bold text-amber-300 focus:outline-none focus:border-amber-400"
+              >
+                {cities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {filterConfig.type === 'CATEGORY' && (
+            <div>
+              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                Seleccionar Categoría
+              </label>
+              <select
+                value={filterConfig.value}
+                onChange={(e) => setFilterConfig({
+                  ...filterConfig,
+                  value: e.target.value,
+                  label: `Categoría == "${e.target.value}"`
+                })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-amber-500/50 text-xs font-bold text-amber-300 focus:outline-none focus:border-amber-400"
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {filterConfig.type === 'MIN_AMOUNT' && (
+            <div>
+              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                Importe Mínimo: S/ {formatNumber(filterConfig.value)}
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min="100"
+                  max="5000"
+                  step="100"
+                  value={filterConfig.value}
+                  onChange={(e) => setFilterConfig({
+                    ...filterConfig,
+                    value: Number(e.target.value),
+                    label: `Total_Venta >= S/ ${e.target.value}`
+                  })}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {filterConfig.type === 'MIN_UNITS' && (
+            <div>
+              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                Unidades Mínimas: {filterConfig.value} u.
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  step="1"
+                  value={filterConfig.value}
+                  onChange={(e) => setFilterConfig({
+                    ...filterConfig,
+                    value: Number(e.target.value),
+                    label: `Cantidad >= ${e.target.value} u.`
+                  })}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Tag de Estado del Filtro Activo */}
+          <div className="flex items-center space-x-2 pb-1">
+            <span className="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold block truncate w-full">
+              Filtro Activo: <strong>{filterConfig.label}</strong>
+            </span>
+          </div>
+
+        </div>
       </div>
 
       {/* Tarjetas de Métricas de Ejecución Hadoop */}

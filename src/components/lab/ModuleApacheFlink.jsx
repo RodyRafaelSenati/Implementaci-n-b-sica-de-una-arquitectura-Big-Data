@@ -16,27 +16,59 @@ import { runApacheFlink } from '../../utils/bigDataEngines';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 
 export const ModuleApacheFlink = ({ dataset }) => {
-  const [executionResult, setExecutionResult] = useState(() => runApacheFlink(dataset));
+  const [filterConfig, setFilterConfig] = useState({ type: 'ALL', value: '', label: 'Sin Filtro' });
+  const [executionResult, setExecutionResult] = useState(() => runApacheFlink(dataset, { type: 'ALL', label: 'Sin Filtro' }));
   const [isRunning, setIsRunning] = useState(false);
-  const [showCode, setShowCode] = useState(false);
+  const [showCode, setShowCode] = useState(true);
 
-  // Sincronizar automáticamente cuando se sube un nuevo dataset
+  // Opciones dinámicas para los selectores de filtro
+  const cities = React.useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return Array.from(new Set(dataset.map(r => r.Ciudad || r.ciudad).filter(Boolean))).sort();
+  }, [dataset]);
+
+  const categories = React.useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return Array.from(new Set(dataset.map(r => r.Categoría || r.categoria).filter(Boolean))).sort();
+  }, [dataset]);
+
+  // Sincronizar automáticamente cuando se sube un nuevo dataset o cambia el filtro
   useEffect(() => {
     if (dataset && Array.isArray(dataset) && dataset.length > 0) {
-      setExecutionResult(runApacheFlink(dataset));
+      setExecutionResult(runApacheFlink(dataset, filterConfig));
     }
-  }, [dataset]);
+  }, [dataset, filterConfig]);
+
+  const handleFilterTypeChange = (type) => {
+    if (type === 'ALL') {
+      setFilterConfig({ type: 'ALL', value: '', label: 'Sin Filtro (Flujo continuo completo)' });
+    } else if (type === 'CITY') {
+      const defaultCity = cities[0] || 'Lima';
+      setFilterConfig({ type: 'CITY', value: defaultCity, label: `lambda r: r.Ciudad == "${defaultCity}"` });
+    } else if (type === 'CATEGORY') {
+      const defaultCat = categories[0] || 'Laptops';
+      setFilterConfig({ type: 'CATEGORY', value: defaultCat, label: `lambda r: r.Categoría == "${defaultCat}"` });
+    } else if (type === 'MIN_AMOUNT') {
+      setFilterConfig({ type: 'MIN_AMOUNT', value: 600, label: 'lambda r: r.Total_Venta >= 600' });
+    } else if (type === 'MIN_UNITS') {
+      setFilterConfig({ type: 'MIN_UNITS', value: 3, label: 'lambda r: r.Cantidad >= 3' });
+    }
+  };
 
   const handleRunFlink = () => {
     setIsRunning(true);
     setTimeout(() => {
-      const res = runApacheFlink(dataset);
+      const res = runApacheFlink(dataset, filterConfig);
       setExecutionResult(res);
       setIsRunning(false);
     }, 300);
   };
 
-  const pyflinkCode = `# DATASTORE S.A.C. - Stream Processing con Apache Flink (DataStream API)
+  const filterSnippet = filterConfig.type !== 'ALL'
+    ? `\n# 2. FilterFunction en DataStream Continuo (Event-by-Event)\n${executionResult.filterFlinkCode || `filtered_stream = stream.filter(...)`}\n\n# 3. Stateful KeyedStream Agrupado por Producto\naggregated_stream = filtered_stream.key_by(lambda row: row.Producto) \\`
+    : `\n# 2. Stateful KeyedStream Agrupado por Producto (Sin FilterFunction)\naggregated_stream = stream.key_by(lambda row: row.Producto) \\`;
+
+  const dynamicPyFlinkCode = `# DATASTORE S.A.C. - Stream Processing con Apache Flink (DataStream API)
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.common import Types, WatermarkStrategy
 from pyflink.datastream.window import TumblingEventTimeWindows
@@ -44,17 +76,16 @@ from pyflink.common.time import Time
 
 env = StreamExecutionEnvironment.get_execution_environment()
 env.set_parallelism(4)
-env.enable_checkpointing(5000)  # Checkpoint cada 5000 ms (Exactly-Once)
+env.enable_checkpointing(5000)  # Checkpoint cada 5000 ms (${executionResult.checkpointsCompleted || 0} Checkpoints, Exactly-Once)
 
-# Ingesta por flujo continuo (Record-by-Record)
+# 1. Ingesta por flujo continuo (${executionResult.totalInputRecords || dataset?.length || 0} eventos)
 stream = env.from_collection(collection=ventas_stream, type_info=Types.ROW(...)) \\
     .assign_timestamps_and_watermarks(WatermarkStrategy.for_monotonous_timestamps())
-
-# Stateful KeyedStream Agrupado por Producto
-aggregated_stream = stream.key_by(lambda row: row.Producto) \\
+${filterSnippet}
     .window(TumblingEventTimeWindows.of(Time.days(1))) \\
     .reduce(lambda acc, curr: (acc.Producto, acc.Cantidad + curr.Cantidad, acc.Total_Venta + curr.Total_Venta))
 
+# Emisión continua a Sink (${executionResult.filteredRecords || 0} eventos emitidos)
 aggregated_stream.print()
 env.execute("DatastoreStreamJob")`;
 
@@ -90,6 +121,139 @@ env.execute("DatastoreStreamJob")`;
             <Play className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
             <span>{isRunning ? 'Procesando Flujo Flink...' : 'Re-ejecutar Stream Flink'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* BARRA DE FILTRADO PERSONALIZADO APACHE FLINK DATASTREAM */}
+      <div className="glass-panel p-4 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/30 via-slate-900 to-slate-900 shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+          <div className="flex items-center space-x-2">
+            <Radio className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-black text-emerald-300 uppercase tracking-wider">
+              Filtro Personalizado en Flujo Continuo (FilterFunction / Event Filter)
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">
+            Eventos en Estado: <strong className="text-emerald-400">{formatNumber(executionResult.filteredRecords || 0)}</strong> de {formatNumber(executionResult.totalInputRecords || 0)} ({formatNumber(executionResult.prunedRecords || 0)} descartados en Stream)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+          
+          {/* Selector de Método de Filtro Flink */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Operador FilterFunction
+            </label>
+            <select
+              value={filterConfig.type}
+              onChange={(e) => handleFilterTypeChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-400"
+            >
+              <option value="ALL">Sin Filtro (DataStream Completo)</option>
+              <option value="CITY">stream.filter(lambda r: r.Ciudad == val)</option>
+              <option value="CATEGORY">stream.filter(lambda r: r.Categoría == val)</option>
+              <option value="MIN_AMOUNT">stream.filter(lambda r: r.Total_Venta &gt;= val)</option>
+              <option value="MIN_UNITS">stream.filter(lambda r: r.Cantidad &gt;= val)</option>
+            </select>
+          </div>
+
+          {/* Selector Dinámico de Valor */}
+          {filterConfig.type === 'CITY' && (
+            <div>
+              <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                Filtro Ciudad
+              </label>
+              <select
+                value={filterConfig.value}
+                onChange={(e) => setFilterConfig({
+                  ...filterConfig,
+                  value: e.target.value,
+                  label: `lambda r: r.Ciudad == "${e.target.value}"`
+                })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-xs font-bold text-emerald-300 focus:outline-none focus:border-emerald-400"
+              >
+                {cities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {filterConfig.type === 'CATEGORY' && (
+            <div>
+              <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                Filtro Categoría
+              </label>
+              <select
+                value={filterConfig.value}
+                onChange={(e) => setFilterConfig({
+                  ...filterConfig,
+                  value: e.target.value,
+                  label: `lambda r: r.Categoría == "${e.target.value}"`
+                })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-xs font-bold text-emerald-300 focus:outline-none focus:border-emerald-400"
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {filterConfig.type === 'MIN_AMOUNT' && (
+            <div>
+              <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                Total_Venta &gt;= S/ {formatNumber(filterConfig.value)}
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min="100"
+                  max="5000"
+                  step="100"
+                  value={filterConfig.value}
+                  onChange={(e) => setFilterConfig({
+                    ...filterConfig,
+                    value: Number(e.target.value),
+                    label: `lambda r: r.Total_Venta >= ${e.target.value}`
+                  })}
+                  className="w-full accent-emerald-400 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {filterConfig.type === 'MIN_UNITS' && (
+            <div>
+              <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                Cantidad &gt;= {filterConfig.value} u.
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  step="1"
+                  value={filterConfig.value}
+                  onChange={(e) => setFilterConfig({
+                    ...filterConfig,
+                    value: Number(e.target.value),
+                    label: `lambda r: r.Cantidad >= ${e.target.value}`
+                  })}
+                  className="w-full accent-emerald-400 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Tag de Estado del Filtro Activo */}
+          <div className="flex items-center space-x-2 pb-1">
+            <span className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold block truncate w-full">
+              Función Activa: <strong>{filterConfig.label}</strong>
+            </span>
+          </div>
+
         </div>
       </div>
 
@@ -139,7 +303,7 @@ env.execute("DatastoreStreamJob")`;
             <span className="text-[10px] text-slate-500 font-mono">Flink 1.17.1</span>
           </div>
           <pre className="text-xs font-mono text-emerald-400 p-3 bg-slate-900 rounded-xl overflow-x-auto leading-relaxed border border-slate-800">
-            {pyflinkCode}
+            {dynamicPyFlinkCode}
           </pre>
         </div>
       )}

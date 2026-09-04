@@ -26,36 +26,64 @@ import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { getBaseTooltipOptions } from '../charts/chartConfig';
 
 export const BenchmarkMatrix = ({ dataset, isDark }) => {
+  const [filterConfig, setFilterConfig] = useState({ type: 'ALL', value: '', label: 'Sin Filtro' });
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [runProgress, setRunProgress] = useState(0);
 
-  const [hadoopResult, setHadoopResult] = useState(() => runHadoopMapReduce(dataset));
-  const [sparkResult, setSparkResult] = useState(() => runApacheSpark(dataset));
-  const [flinkResult, setFlinkResult] = useState(() => runApacheFlink(dataset));
+  const [hadoopResult, setHadoopResult] = useState(() => runHadoopMapReduce(dataset, { type: 'ALL', label: 'Sin Filtro' }));
+  const [sparkResult, setSparkResult] = useState(() => runApacheSpark(dataset, { type: 'ALL', label: 'Sin Filtro' }));
+  const [flinkResult, setFlinkResult] = useState(() => runApacheFlink(dataset, { type: 'ALL', label: 'Sin Filtro' }));
 
-  // Sincronizar automáticamente cuando el dataset cambia
+  // Opciones dinámicas para los selectores de filtro
+  const cities = React.useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return Array.from(new Set(dataset.map(r => r.Ciudad || r.ciudad).filter(Boolean))).sort();
+  }, [dataset]);
+
+  const categories = React.useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return Array.from(new Set(dataset.map(r => r.Categoría || r.categoria).filter(Boolean))).sort();
+  }, [dataset]);
+
+  // Sincronizar automáticamente cuando el dataset o el filtro cambia
   useEffect(() => {
     if (dataset && Array.isArray(dataset) && dataset.length > 0) {
-      setHadoopResult(runHadoopMapReduce(dataset));
-      setSparkResult(runApacheSpark(dataset));
-      setFlinkResult(runApacheFlink(dataset));
+      setHadoopResult(runHadoopMapReduce(dataset, filterConfig));
+      setSparkResult(runApacheSpark(dataset, filterConfig));
+      setFlinkResult(runApacheFlink(dataset, filterConfig));
     }
-  }, [dataset]);
+  }, [dataset, filterConfig]);
+
+  const handleFilterTypeChange = (type) => {
+    if (type === 'ALL') {
+      setFilterConfig({ type: 'ALL', value: '', label: 'Sin Filtro (Dataset Completo)' });
+    } else if (type === 'CITY') {
+      const defaultCity = cities[0] || 'Lima';
+      setFilterConfig({ type: 'CITY', value: defaultCity, label: `Ciudad == "${defaultCity}"` });
+    } else if (type === 'CATEGORY') {
+      const defaultCat = categories[0] || 'Laptops';
+      setFilterConfig({ type: 'CATEGORY', value: defaultCat, label: `Categoría == "${defaultCat}"` });
+    } else if (type === 'MIN_AMOUNT') {
+      setFilterConfig({ type: 'MIN_AMOUNT', value: 1000, label: 'Total_Venta >= S/ 1,000' });
+    } else if (type === 'MIN_UNITS') {
+      setFilterConfig({ type: 'MIN_UNITS', value: 3, label: 'Cantidad >= 3 unidades' });
+    }
+  };
 
   const handleRunFullBenchmark = () => {
     setIsRunningAll(true);
     setRunProgress(10);
 
     setTimeout(() => {
-      setHadoopResult(runHadoopMapReduce(dataset));
+      setHadoopResult(runHadoopMapReduce(dataset, filterConfig));
       setRunProgress(45);
 
       setTimeout(() => {
-        setSparkResult(runApacheSpark(dataset));
+        setSparkResult(runApacheSpark(dataset, filterConfig));
         setRunProgress(80);
 
         setTimeout(() => {
-          setFlinkResult(runApacheFlink(dataset));
+          setFlinkResult(runApacheFlink(dataset, filterConfig));
           setRunProgress(100);
           setTimeout(() => setIsRunningAll(false), 300);
         }, 300);
@@ -141,6 +169,136 @@ export const BenchmarkMatrix = ({ dataset, isDark }) => {
           <Sparkles className={`w-4 h-4 ${isRunningAll ? 'animate-spin' : ''}`} />
           <span>{isRunningAll ? `Ejecutando Benchmark (${runProgress}%)...` : '⚡ Ejecutar Comparativa Completa'}</span>
         </button>
+      </div>
+
+      {/* BARRA DE FILTRADO PERSONALIZADO BENCHMARK */}
+      <div className="glass-panel p-4 rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/30 via-slate-900 to-slate-900 shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
+          <div className="flex items-center space-x-2">
+            <Scale className="w-4 h-4 text-indigo-400" />
+            <span className="text-xs font-black text-indigo-300 uppercase tracking-wider">
+              Filtro Global de Benchmark (Evaluación Simultánea en los 3 Motores)
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">
+            Registros Procesados en Motores: <strong className="text-indigo-400">{formatNumber(hadoopResult.filteredRecords || 0)}</strong> de {formatNumber(hadoopResult.totalInputRecords || dataset?.length || 0)}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+          
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Criterio de Filtrado Benchmark
+            </label>
+            <select
+              value={filterConfig.type}
+              onChange={(e) => handleFilterTypeChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-indigo-400"
+            >
+              <option value="ALL">Sin Filtro (Todo el Dataset)</option>
+              <option value="CITY">Por Ciudad / Sede</option>
+              <option value="CATEGORY">Por Categoría</option>
+              <option value="MIN_AMOUNT">Por Importe Mínimo (Total Venta)</option>
+              <option value="MIN_UNITS">Por Cantidad Mínima</option>
+            </select>
+          </div>
+
+          {filterConfig.type === 'CITY' && (
+            <div>
+              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">
+                Ciudad Seleccionada
+              </label>
+              <select
+                value={filterConfig.value}
+                onChange={(e) => setFilterConfig({
+                  ...filterConfig,
+                  value: e.target.value,
+                  label: `Ciudad == "${e.target.value}"`
+                })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-indigo-500/50 text-xs font-bold text-indigo-300 focus:outline-none focus:border-indigo-400"
+              >
+                {cities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {filterConfig.type === 'CATEGORY' && (
+            <div>
+              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">
+                Categoría Seleccionada
+              </label>
+              <select
+                value={filterConfig.value}
+                onChange={(e) => setFilterConfig({
+                  ...filterConfig,
+                  value: e.target.value,
+                  label: `Categoría == "${e.target.value}"`
+                })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-indigo-500/50 text-xs font-bold text-indigo-300 focus:outline-none focus:border-indigo-400"
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {filterConfig.type === 'MIN_AMOUNT' && (
+            <div>
+              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">
+                Total Venta &gt;= S/ {formatNumber(filterConfig.value)}
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min="100"
+                  max="5000"
+                  step="100"
+                  value={filterConfig.value}
+                  onChange={(e) => setFilterConfig({
+                    ...filterConfig,
+                    value: Number(e.target.value),
+                    label: `Total_Venta >= S/ ${e.target.value}`
+                  })}
+                  className="w-full accent-indigo-400 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {filterConfig.type === 'MIN_UNITS' && (
+            <div>
+              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">
+                Cantidad &gt;= {filterConfig.value} u.
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  step="1"
+                  value={filterConfig.value}
+                  onChange={(e) => setFilterConfig({
+                    ...filterConfig,
+                    value: Number(e.target.value),
+                    label: `Cantidad >= ${e.target.value} u.`
+                  })}
+                  className="w-full accent-indigo-400 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2 pb-1">
+            <span className="px-3 py-2 rounded-xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-300 font-mono text-[11px] font-bold block truncate w-full">
+              Filtro Activo: <strong>{filterConfig.label}</strong>
+            </span>
+          </div>
+
+        </div>
       </div>
 
       {/* Barra de Progreso si está ejecutándose */}
